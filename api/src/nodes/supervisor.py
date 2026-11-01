@@ -1,21 +1,20 @@
 from state import MedicalState
-from langchain.chat_models import init_chat_model
 from typing_extensions import Literal
-
+from IPython.display import Markdown
 
 
 def supervisor(state:MedicalState) -> dict:
+    if state.get("final_report"):
+        # display(Markdown(state["final_report"]))
+        return {"next" : "END"}
     if state["question_count"] < 5:
         return {"next" : "diagnostic_agent"}
     if state["question_count"] == 5:
-        return {"next" : "physician_review"}
-    # if state["physician_treatment"] != None:
-    #     return {"next" : "report_agent"}
-    # if state["final_report"] != None:
-    #     return {"next" : "FINISH"}
+        return {"next" : "report_agent"}
 
 
 
-def route_afte_supervisor(state: MedicalState) -> Literal["diagnostic_agent","physician_review","report_agent","FINISH"]:
+def route_after_supervisor(state: MedicalState) -> Literal["diagnostic_agent","report_agent","END"]:
     return state["next"]
     
+
