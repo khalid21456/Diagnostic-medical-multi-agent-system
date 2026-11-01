@@ -8,7 +8,7 @@ class MedicalState(TypedDict):
         "diagnostic_agent",
         "physician_review",
         "report_agent",
-        "FINISH"
+        "END"
     ]
     question_count: int
     interim_care: str
