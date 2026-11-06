@@ -7,13 +7,11 @@ import type {
 } from '../types/diagnosis'
 
 /**
- * Real HTTP implementation — placeholder for the FastAPI/LangGraph backend.
- *
- * TODO(backend): implement these routes in `api/`:
+ * Real HTTP implementation, talking to the FastAPI/LangGraph backend
+ * (routes in `api/src/routes/sessions.py`, see DOCUMENTATION.md):
  *   POST   /sessions                 → StartSessionResponse
  *   POST   /sessions/{id}/answers    → SubmitAnswerResponse   body: { answer }
  *   GET    /sessions/{id}/report     → DiagnosisReport
- * Adjust the paths below if the backend uses different ones.
  */
 const ENDPOINTS = {
   startSession: () => '/sessions',
@@ -34,10 +32,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const detail = await res.text().catch(() => '')
-    throw new ApiError(res.status, detail || `Request failed (${res.status})`)
+    throw new ApiError(res.status, await errorDetail(res))
   }
   return (await res.json()) as T
+}
+
+/**
+ * FastAPI errors look like `{"detail": "message"}` (HTTPException) or
+ * `{"detail": [{"msg": "..."}, ...]}` (validation errors, 422).
+ */
+async function errorDetail(res: Response): Promise<string> {
+  const fallback = `Request failed (${res.status})`
+  const text = await res.text().catch(() => '')
+  try {
+    const { detail } = JSON.parse(text) as { detail?: unknown }
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+      return detail.map((d: { msg?: string }) => d.msg ?? '').filter(Boolean).join('; ') || fallback
+    }
+  } catch {
+    // not JSON: fall through to the raw text
+  }
+  return text || fallback
 }
 
 export const httpApi: DiagnosisApi = {
